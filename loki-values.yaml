@@ -1,0 +1,47 @@
+deploymentMode: SingleBinary
+
+loki:
+  auth_enabled: false
+  useTestSchema: true
+  commonConfig:
+    replication_factor: 1
+  storage:
+    type: filesystem
+
+singleBinary:
+  replicas: 1
+  persistence:
+    enabled: false
+  # Montar disco efímero en /var/loki para evitar el error de read-only
+  extraVolumes:
+    - name: storage
+      emptyDir: {}
+  extraVolumeMounts:
+    - name: storage
+      mountPath: /var/loki
+
+# Desactivar componentes del modo distribuido
+read:
+  replicas: 0
+write:
+  replicas: 0
+backend:
+  replicas: 0
+
+# Desactivar cachés y canary auxiliares para ahorrar RAM en Kind
+chunksCache:
+  enabled: false
+resultsCache:
+  enabled: false
+lokiCanary:
+  enabled: false
+
+monitoring:
+  selfMonitoring:
+    enabled: false
+
+gateway:
+  enabled: false
+
+test:
+  enabled: false

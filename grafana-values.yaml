@@ -13,3 +13,9 @@ datasources:
         url: http://prometheus-server.observability.svc:80
         isDefault: true
         editable: true
+
+      - name: Loki
+        type: loki
+        access: proxy
+        url: http://loki.observability.svc:3100
+        editable: true
