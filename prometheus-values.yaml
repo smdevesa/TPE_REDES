@@ -1,0 +1,27 @@
+alertmanager:
+  enabled: false
+
+pushgateway:
+  enabled: false
+
+server:
+  persistentVolume:
+    enabled: false
+
+extraScrapeConfigs: |
+  - job_name: 'the-store-spring'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'carts.the-store.svc:80'
+          - 'orders.the-store.svc:80'
+          - 'ui.the-store.svc:80'
+
+  - job_name: 'the-store-native'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'catalog.the-store.svc:80'
+          - 'checkout.the-store.svc:80'
