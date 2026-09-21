@@ -179,3 +179,81 @@ helm upgrade grafana grafana/grafana \
   --namespace observability \
   --values grafana-values.yaml
 ```
+
+## 10. Instalar Tempo (traces)
+
+Agrega trazabilidad (distributed tracing) a lo ya instalado. La stack queda: **Prometheus** (métricas), **Loki** (logs) y **Tempo** (traces).
+
+### 10.1. Instalar Tempo (single-binary)
+
+```bash
+helm install tempo grafana/tempo \
+  --namespace observability \
+  --values tempo-values.yaml
+```
+
+`tempo-values.yaml` (ya está en el repo) configura:
+- Almacenamiento en filesystem local (`backend: local`) sin persistent volume
+- Receivers OTLP habilitados: HTTP en `:4318` y gRPC en `:4317`
+- Sin persistencia
+
+### 10.2. Verificar
+
+```bash
+kubectl get pods -n observability
+kubectl get svc tempo -n observability
+```
+
+Deberías ver algo como:
+
+```
+NAME                  READY   STATUS    RESTARTS   AGE
+tempo-xxxxx           1/1     Running   0          1m
+```
+
+Y el service `tempo` exponiendo los puertos `3200` (frontend), `4317` (OTLP gRPC) y `4318` (OTLP HTTP).
+
+## 11. Conectar los microservicios a Tempo
+
+Una vez instalado, cada servicio debe exportar sus trazas por **OTLP HTTP** al receiver de Tempo (`tempo.observability.svc:4318`). Esto se hace seteando variables de entorno en los Deployments con `kubectl set env` (la release hace un rolling update).
+
+### 11.1. Microservicios Java (orders, carts, ui)
+
+Los servicios Java traen el SDK de OpenTelemetry **apagado por defecto** (`otel.sdk.disabled: true` en `application.yml`). Estas env lo desbloquean y apuntan a Tempo:
+
+```bash
+kubectl set env deployment/carts -n the-store \
+  OTEL_SDK_DISABLED=false \
+  OTEL_SERVICE_NAME=carts \
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo.observability.svc:4318
+
+kubectl set env deployment/orders -n the-store \
+  OTEL_SDK_DISABLED=false \
+  OTEL_SERVICE_NAME=orders \
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo.observability.svc:4318
+
+kubectl set env deployment/ui -n the-store \
+  OTEL_SDK_DISABLED=false \
+  OTEL_SERVICE_NAME=ui \
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo.observability.svc:4318
+```
+
+### 11.2. Microservicio Go (catalog)
+
+En `catalog` la presencia de `OTEL_SERVICE_NAME` es el gatillo que inicializa el tracer (`main.go`). Sin esa variable, no exporta trazas:
+
+```bash
+kubectl set env deployment/catalog -n the-store \
+  OTEL_SERVICE_NAME=catalog \
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo.observability.svc:4318
+```
+
+### 11.3. Microservicio Node (checkout)
+
+`checkout` ya inicializa el SDK de OpenTelemetry siempre; estas env fijan el nombre del servicio y redirigen el exporter a Tempo:
+
+```bash
+kubectl set env deployment/checkout -n the-store \
+  OTEL_SERVICE_NAME=checkout \
+  OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo.observability.svc:4318
+```

@@ -9,6 +9,7 @@ datasources:
     datasources:
       - name: Prometheus
         type: prometheus
+        uid: prometheus
         access: proxy
         url: http://prometheus-server.observability.svc:80
         isDefault: true
@@ -16,12 +17,24 @@ datasources:
 
       - name: Loki
         type: loki
+        uid: loki                  # Asignamos un UID explícito para poder referenciarlo
         access: proxy
         url: http://loki.observability.svc:3100
         editable: true
 
       - name: Tempo
         type: tempo
+        uid: tempo
         access: proxy
         url: http://tempo.observability.svc:3200
         editable: true
+        jsonData:
+          tracesToLogsV2:
+            datasourceUid: 'loki'  # Vincula directo al UID de Loki declarado arriba
+            spanStartTimeShift: '-10s'  # Expande 10 segundos antes del span por desfases de reloj
+            spanEndTimeShift: '10s'    # Expande 10 segundos después del span
+            tags:
+              - key: 'service.name'
+                value: 'app'       # Mapea 'service.name' (Tempo) -> {app="..."} (Loki)
+            filterByTraceID: false # Lo dejamos en false al inicio (explicado abajo)
+            filterBySpanID: false
