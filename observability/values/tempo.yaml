@@ -1,0 +1,17 @@
+# Tempo (chart grafana/tempo, single binary): recibe trazas OTLP de los microservicios.
+#   OTLP/HTTP :4318 (el que usan los servicios)   OTLP/gRPC :4317   API/consultas :3200
+# Guarda los spans en el filesystem local, sin base de datos indexada.
+
+tempo:
+  storage:
+    trace:
+      backend: local
+  receivers:
+    otlp:
+      protocols:
+        http:
+          endpoint: "0.0.0.0:4318"
+        grpc:
+          endpoint: "0.0.0.0:4317"
+  persistence:
+    enabled: false

@@ -1,0 +1,15 @@
+# Contact point de Discord (extra mile). El webhook se toma de la variable de
+# entorno DISCORD_WEBHOOK_URL, que viene del Secret "grafana-discord" (.env).
+apiVersion: 1
+contactPoints:
+  - orgId: 1
+    name: discord-equipo
+    receivers:
+      - uid: discord-equipo
+        type: discord
+        disableResolveMessage: false     # avisar también cuando se resuelve
+        settings:
+          url: ${DISCORD_WEBHOOK_URL}
+          use_discord_username: false
+          title: '{{ template "thestore.discord.title" . }}'
+          message: '{{ template "thestore.discord.message" . }}'

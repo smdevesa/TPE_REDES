@@ -1,0 +1,7 @@
+# Promtail (chart grafana/promtail)
+# Corre como DaemonSet (un pod por nodo), lee el stdout de los contenedores
+# desde /var/log/pods y lo envía a Loki. Agrega las etiquetas app, namespace, pod, container.
+
+config:
+  clients:
+    - url: http://loki.observability.svc:3100/loki/api/v1/push

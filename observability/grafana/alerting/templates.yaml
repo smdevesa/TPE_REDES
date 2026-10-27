@@ -1,0 +1,28 @@
+# Plantilla propia del mensaje de Discord (Go templates de Grafana).
+apiVersion: 1
+templates:
+  - orgId: 1
+    name: thestore-discord
+    template: |
+      {{ define "thestore.discord.title" -}}
+      {{ if eq .Status "firing" }}🔥 [ALERTA] {{ else }}✅ [RESUELTO] {{ end }}{{ .CommonLabels.alertname }}{{ if .CommonLabels.service }} · {{ .CommonLabels.service }}{{ end }}
+      {{- end }}
+
+      {{ define "thestore.discord.alert" -}}
+      **Servicio:** `{{ .Labels.service }}`{{ if .Labels.pod }} (pod `{{ .Labels.pod }}`){{ end }}  ·  **Severidad:** {{ .Labels.severity }}
+      {{ .Annotations.summary }}
+      {{ if eq .Status "firing" }}_{{ .Annotations.description }}_
+      🕒 Desde {{ .StartsAt.Format "15:04:05" }} UTC{{ else }}🕒 Activa de {{ .StartsAt.Format "15:04:05" }} a {{ .EndsAt.Format "15:04:05" }} UTC{{ end }}
+      {{ if .PanelURL }}📊 [Ver panel]({{ .PanelURL }}){{ else if .DashboardURL }}📊 [Ver tablero]({{ .DashboardURL }}){{ end }}
+      {{- end }}
+
+      {{ define "thestore.discord.message" -}}
+      {{ if gt (len .Alerts.Firing) 0 }}🔴 **{{ len .Alerts.Firing }} alerta(s) activa(s) en The Store**
+      {{ range .Alerts.Firing }}
+      {{ template "thestore.discord.alert" . }}
+      {{ end }}{{ end }}
+      {{- if gt (len .Alerts.Resolved) 0 }}🟢 **{{ len .Alerts.Resolved }} alerta(s) resuelta(s)**
+      {{ range .Alerts.Resolved }}
+      {{ template "thestore.discord.alert" . }}
+      {{ end }}{{ end }}
+      {{- end }}

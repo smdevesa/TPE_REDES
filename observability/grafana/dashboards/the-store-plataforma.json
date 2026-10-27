@@ -1,0 +1,594 @@
+{
+  "uid": "the-store-plataforma",
+  "title": "The Store - Plataforma",
+  "description": "Vista única de la plataforma: estado, métricas RED, llamadas entre servicios, trazas y logs con error (3.3.4).",
+  "tags": [
+    "the-store"
+  ],
+  "timezone": "browser",
+  "editable": false,
+  "graphTooltip": 1,
+  "refresh": "10s",
+  "schemaVersion": 39,
+  "time": {
+    "from": "now-30m",
+    "to": "now"
+  },
+  "links": [
+    {
+      "title": "Infraestructura",
+      "type": "link",
+      "icon": "dashboard",
+      "url": "/d/the-store-infraestructura",
+      "keepTime": true
+    }
+  ],
+  "panels": [
+    {
+      "id": 1,
+      "type": "row",
+      "title": "Estado de la plataforma",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 0
+      },
+      "panels": []
+    },
+    {
+      "type": "stat",
+      "title": "Estado de los servicios",
+      "description": "Resultado del scraping de Prometheus a cada microservicio (métrica up).",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "up{job=~\"the-store-.*\"}",
+          "legendFormat": "{{service}}",
+          "range": false,
+          "instant": true
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "mappings": [
+            {
+              "type": "value",
+              "options": {
+                "0": {
+                  "text": "DOWN",
+                  "color": "red"
+                },
+                "1": {
+                  "text": "UP",
+                  "color": "green"
+                }
+              }
+            }
+          ],
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "red",
+                "value": null
+              },
+              {
+                "color": "green",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "reduceOptions": {
+          "calcs": [
+            "lastNotNull"
+          ],
+          "fields": "",
+          "values": false
+        },
+        "colorMode": "background",
+        "graphMode": "none",
+        "textMode": "value_and_name",
+        "justifyMode": "center",
+        "orientation": "auto"
+      },
+      "id": 2,
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 0,
+        "y": 1
+      }
+    },
+    {
+      "type": "alertlist",
+      "title": "Alertas activas",
+      "description": "Reglas de Grafana Alerting en estado Firing/Pending.",
+      "options": {
+        "viewMode": "list",
+        "groupMode": "default",
+        "maxItems": 10,
+        "sortOrder": 1,
+        "dashboardAlerts": false,
+        "alertName": "",
+        "showInstances": true,
+        "stateFilter": {
+          "firing": true,
+          "pending": true,
+          "noData": false,
+          "normal": false,
+          "error": true
+        },
+        "folder": null,
+        "alertInstanceLabelFilter": ""
+      },
+      "id": 3,
+      "gridPos": {
+        "h": 5,
+        "w": 12,
+        "x": 12,
+        "y": 1
+      }
+    },
+    {
+      "id": 4,
+      "type": "row",
+      "title": "Métricas RED (Prometheus)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 6
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Rate · requests por segundo",
+      "description": "Spring Boot: http_server_requests_seconds_count · Go: gin_requests_total. Checkout (NestJS) no expone métricas HTTP en /metrics; su actividad se ve en las trazas y logs de abajo.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service) (rate(http_server_requests_seconds_count{job=\"the-store-spring\", uri!~\"/actuator.*|/chaos.*\"}[1m]))",
+          "legendFormat": "{{service}}",
+          "range": true,
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service) (rate(gin_requests_total{service=\"catalog\", url!~\"/health|/chaos.*\"}[1m]))",
+          "legendFormat": "{{service}}",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never"
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 5,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 0,
+        "y": 7
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Errors · % de respuestas 5xx",
+      "description": "Proporción de respuestas 5xx. La alerta dispara por encima del 5%.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service) (rate(http_server_requests_seconds_count{job=\"the-store-spring\", uri!~\"/actuator.*|/chaos.*\", status=~\"5..\"}[1m])) / sum by (service) (rate(http_server_requests_seconds_count{job=\"the-store-spring\", uri!~\"/actuator.*|/chaos.*\"}[1m]))",
+          "legendFormat": "{{service}}",
+          "range": true,
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service) (rate(gin_requests_total{service=\"catalog\", url!~\"/health|/chaos.*\", code=~\"5..\"}[1m])) / sum by (service) (rate(gin_requests_total{service=\"catalog\", url!~\"/health|/chaos.*\"}[1m]))",
+          "legendFormat": "{{service}}",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percentunit",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "red",
+                "value": 0.05
+              }
+            ]
+          },
+          "min": 0,
+          "max": 1
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 6,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 8,
+        "y": 7
+      }
+    },
+    {
+      "type": "timeseries",
+      "title": "Duration · latencia promedio",
+      "description": "Tiempo medio de respuesta (suma/cantidad). La alerta dispara por encima de 1s.",
+      "datasource": {
+        "type": "prometheus",
+        "uid": "prometheus"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service) (rate(http_server_requests_seconds_sum{job=\"the-store-spring\", uri!~\"/actuator.*|/chaos.*\"}[1m])) / sum by (service) (rate(http_server_requests_seconds_count{job=\"the-store-spring\", uri!~\"/actuator.*|/chaos.*\"}[1m]))",
+          "legendFormat": "{{service}}",
+          "range": true,
+          "instant": false
+        },
+        {
+          "refId": "B",
+          "datasource": {
+            "type": "prometheus",
+            "uid": "prometheus"
+          },
+          "expr": "sum by (service) (rate(gin_request_duration_seconds_sum{service=\"catalog\", url!~\"/health|/chaos.*\"}[1m])) / sum by (service) (rate(gin_request_duration_seconds_count{service=\"catalog\", url!~\"/health|/chaos.*\"}[1m]))",
+          "legendFormat": "{{service}}",
+          "range": true,
+          "instant": false
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "custom": {
+            "lineWidth": 2,
+            "fillOpacity": 10,
+            "showPoints": "never",
+            "thresholdsStyle": {
+              "mode": "line+area"
+            }
+          },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              {
+                "color": "transparent",
+                "value": null
+              },
+              {
+                "color": "orange",
+                "value": 1
+              }
+            ]
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "table",
+          "placement": "right",
+          "calcs": [
+            "lastNotNull",
+            "max"
+          ]
+        },
+        "tooltip": {
+          "mode": "multi",
+          "sort": "desc"
+        }
+      },
+      "id": 7,
+      "gridPos": {
+        "h": 8,
+        "w": 8,
+        "x": 16,
+        "y": 7
+      }
+    },
+    {
+      "id": 8,
+      "type": "row",
+      "title": "Trazas (Tempo)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 15
+      },
+      "panels": []
+    },
+    {
+      "type": "table",
+      "title": "Llamadas salientes (a otros servicios y a bases de datos)",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "description": "Spans de tipo client: cada vez que un servicio llama a otro (server.address / http.url) o a su base de datos (db.system). ui es el que más aparece porque es el frontend: cada página llama a catalog, carts o checkout. checkout llama a orders al pagar; catalog y orders consultan su base. Click en el Trace ID para ver la traza completa.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "limit": 100,
+          "tableType": "spans",
+          "spss": 10,
+          "query": "{ kind = client && resource.service.name =~ \"ui|catalog|carts|orders|checkout\" } | select(span.server.address, span.http.url, span.db.system, span.http.response.status_code) with (most_recent=true)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "id": 9,
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 0,
+        "y": 16
+      }
+    },
+    {
+      "type": "table",
+      "title": "Trazas con error o lentas (> 1s)",
+      "datasource": {
+        "type": "tempo",
+        "uid": "tempo"
+      },
+      "description": "Trazas de The Store con algún span en error o de más de 1 segundo. Desde el span se salta a los logs (Loki) con 'Logs for this span'.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "tempo",
+            "uid": "tempo"
+          },
+          "queryType": "traceql",
+          "limit": 50,
+          "tableType": "traces",
+          "query": "{ resource.service.name =~ \"ui|catalog|carts|orders|checkout\" && (status = error || duration > 1s) } with (most_recent=true)"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {},
+        "overrides": []
+      },
+      "options": {
+        "showHeader": true
+      },
+      "id": 10,
+      "gridPos": {
+        "h": 10,
+        "w": 12,
+        "x": 12,
+        "y": 16
+      }
+    },
+    {
+      "id": 11,
+      "type": "row",
+      "title": "Logs (Loki)",
+      "collapsed": false,
+      "gridPos": {
+        "h": 1,
+        "w": 24,
+        "x": 0,
+        "y": 26
+      },
+      "panels": []
+    },
+    {
+      "type": "timeseries",
+      "title": "Logs con error por servicio",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "description": "Cantidad de líneas de log con error/exception/fail por minuto, por servicio.",
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "sum by (app) (count_over_time({namespace=\"the-store\"} |~ \"(?i)(error|exception|fail)\" [1m]))",
+          "legendFormat": "{{app}}",
+          "queryType": "range"
+        }
+      ],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "short",
+          "custom": {
+            "drawStyle": "bars",
+            "fillOpacity": 60,
+            "stacking": {
+              "mode": "normal"
+            }
+          }
+        },
+        "overrides": []
+      },
+      "options": {
+        "legend": {
+          "displayMode": "list",
+          "placement": "bottom"
+        },
+        "tooltip": {
+          "mode": "multi"
+        }
+      },
+      "id": 12,
+      "gridPos": {
+        "h": 10,
+        "w": 8,
+        "x": 0,
+        "y": 27
+      }
+    },
+    {
+      "type": "logs",
+      "title": "Últimos logs con error",
+      "datasource": {
+        "type": "loki",
+        "uid": "loki"
+      },
+      "targets": [
+        {
+          "refId": "A",
+          "datasource": {
+            "type": "loki",
+            "uid": "loki"
+          },
+          "expr": "{namespace=\"the-store\"} |~ \"(?i)(error|exception|fail)\"",
+          "queryType": "range"
+        }
+      ],
+      "options": {
+        "showTime": true,
+        "showLabels": false,
+        "showCommonLabels": false,
+        "wrapLogMessage": true,
+        "prettifyLogMessage": false,
+        "enableLogDetails": true,
+        "dedupStrategy": "none",
+        "sortOrder": "Descending"
+      },
+      "id": 13,
+      "gridPos": {
+        "h": 10,
+        "w": 16,
+        "x": 8,
+        "y": 27
+      }
+    }
+  ],
+  "templating": {
+    "list": []
+  },
+  "annotations": {
+    "list": [
+      {
+        "builtIn": 1,
+        "datasource": {
+          "type": "grafana",
+          "uid": "-- Grafana --"
+        },
+        "enable": true,
+        "hide": true,
+        "iconColor": "rgba(0, 211, 255, 1)",
+        "name": "Annotations & Alerts",
+        "type": "dashboard"
+      }
+    ]
+  }
+}

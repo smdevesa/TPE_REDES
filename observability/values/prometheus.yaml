@@ -1,0 +1,55 @@
+# Prometheus Server (chart prometheus-community/prometheus)
+# Modelo pull: scrapea los microservicios de The Store y la infraestructura del clúster.
+# Las alertas las evalúa Grafana Alerting, por eso no se despliega Alertmanager.
+
+alertmanager:
+  enabled: false
+
+# El subchart se llama "prometheus-pushgateway" (no "pushgateway")
+prometheus-pushgateway:
+  enabled: false
+
+# Se mantienen para el tablero de infraestructura (3.3.5):
+#   kube-state-metrics  -> estado de deployments, pods, reinicios y límites
+#   node-exporter       -> métricas del nodo (CPU, memoria, disco)
+kube-state-metrics:
+  enabled: true
+prometheus-node-exporter:
+  enabled: true
+
+server:
+  global:
+    scrape_interval: 15s
+    evaluation_interval: 15s
+  persistentVolume:
+    enabled: false
+  retention: 2d
+
+extraScrapeConfigs: |
+  # Spring Boot (Micrometer) -> /actuator/prometheus
+  - job_name: 'the-store-spring'
+    metrics_path: '/actuator/prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'carts.the-store.svc:80'
+          - 'orders.the-store.svc:80'
+          - 'ui.the-store.svc:80'
+    relabel_configs:
+      # carts.the-store.svc:80 -> service="carts"
+      - source_labels: [__address__]
+        regex: '([^.]+)\..*'
+        target_label: service
+
+  # Go (gin) y Node.js (NestJS) -> /metrics
+  - job_name: 'the-store-native'
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    static_configs:
+      - targets:
+          - 'catalog.the-store.svc:80'
+          - 'checkout.the-store.svc:80'
+    relabel_configs:
+      - source_labels: [__address__]
+        regex: '([^.]+)\..*'
+        target_label: service

@@ -91,6 +91,16 @@ spec:
         fsGroup: 1000
       containers:
         - name: catalog
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: catalog
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://tempo.observability.svc:4318
+            # Solo trazas por OTLP: métricas las scrapea Prometheus y los logs los junta Promtail
+            - name: OTEL_METRICS_EXPORTER
+              value: none
+            - name: OTEL_LOGS_EXPORTER
+              value: none
           envFrom:
             - configMapRef:
                 name: catalog
@@ -107,6 +117,15 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          # Si el contenedor deja de responder (p. ej. CPU saturada), Kubernetes lo reinicia
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
@@ -212,6 +231,18 @@ spec:
           env:
             - name: JAVA_OPTS
               value: -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/urandom
+            # OpenTelemetry: el SDK viene apagado por defecto en los servicios Java
+            - name: OTEL_SDK_DISABLED
+              value: "false"
+            - name: OTEL_SERVICE_NAME
+              value: carts
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://tempo.observability.svc:4318
+            # Solo trazas por OTLP: métricas las scrapea Prometheus y los logs los junta Promtail
+            - name: OTEL_METRICS_EXPORTER
+              value: none
+            - name: OTEL_LOGS_EXPORTER
+              value: none
           envFrom:
             - configMapRef:
                 name: carts
@@ -228,6 +259,15 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          # Si el contenedor deja de responder (p. ej. CPU saturada), Kubernetes lo reinicia
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
@@ -351,6 +391,18 @@ spec:
           env:
             - name: JAVA_OPTS
               value: -XX:MaxRAMPercentage=75.0 -Djava.security.egd=file:/dev/urandom
+            # OpenTelemetry: el SDK viene apagado por defecto en los servicios Java
+            - name: OTEL_SDK_DISABLED
+              value: "false"
+            - name: OTEL_SERVICE_NAME
+              value: orders
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://tempo.observability.svc:4318
+            # Solo trazas por OTLP: métricas las scrapea Prometheus y los logs los junta Promtail
+            - name: OTEL_METRICS_EXPORTER
+              value: none
+            - name: OTEL_LOGS_EXPORTER
+              value: none
           envFrom:
             - configMapRef:
                 name: orders
@@ -367,6 +419,15 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          # Si el contenedor deja de responder (p. ej. CPU saturada), Kubernetes lo reinicia
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness
@@ -407,6 +468,8 @@ metadata:
   name: checkout
 data:
   RETAIL_CHECKOUT_PERSISTENCE_PROVIDER: in-memory
+  # Sin esta variable checkout usa un orders simulado y nunca llama al servicio orders
+  RETAIL_CHECKOUT_ENDPOINTS_ORDERS: http://orders
 ---
 # Source: retail-store-sample-checkout-chart/templates/service.yaml
 apiVersion: v1
@@ -470,6 +533,16 @@ spec:
         fsGroup: 1000
       containers:
         - name: checkout
+          env:
+            - name: OTEL_SERVICE_NAME
+              value: checkout
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://tempo.observability.svc:4318
+            # Solo trazas por OTLP: métricas las scrapea Prometheus y los logs los junta Promtail
+            - name: OTEL_METRICS_EXPORTER
+              value: none
+            - name: OTEL_LOGS_EXPORTER
+              value: none
           envFrom:
             - configMapRef:
                 name: checkout
@@ -486,6 +559,15 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          # Si el contenedor deja de responder (p. ej. CPU saturada), Kubernetes lo reinicia
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 8080
+            initialDelaySeconds: 15
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /health
@@ -606,6 +688,18 @@ spec:
               valueFrom:
                 fieldRef:
                   fieldPath: spec.nodeName
+            # OpenTelemetry: el SDK viene apagado por defecto en los servicios Java
+            - name: OTEL_SDK_DISABLED
+              value: "false"
+            - name: OTEL_SERVICE_NAME
+              value: ui
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://tempo.observability.svc:4318
+            # Solo trazas por OTLP: métricas las scrapea Prometheus y los logs los junta Promtail
+            - name: OTEL_METRICS_EXPORTER
+              value: none
+            - name: OTEL_LOGS_EXPORTER
+              value: none
           envFrom:
             - configMapRef:
                 name: ui
@@ -624,6 +718,15 @@ spec:
             - name: http
               containerPort: 8080
               protocol: TCP
+          # Si el contenedor deja de responder (p. ej. CPU saturada), Kubernetes lo reinicia
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8080
+            initialDelaySeconds: 60
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
           readinessProbe:
             httpGet:
               path: /actuator/health/readiness

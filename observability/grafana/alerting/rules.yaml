@@ -1,0 +1,239 @@
+# Reglas de alerta evaluadas por Grafana Alerting sobre métricas de Prometheus.
+# Cada regla genera una instancia por servicio (etiqueta "service").
+# Las anotaciones __dashboardUid__/__panelId__ hacen que la notificación
+# incluya el link al tablero y al panel correspondiente.
+#
+# Cada regla: A = consulta PromQL, B = último valor (reduce), C = umbral sobre B.
+#
+# Nota: en estos archivos Grafana reemplaza $VARIABLE por variables de entorno,
+# por eso las plantillas usan .Labels / .Values en lugar de $labels / $values.
+apiVersion: 1
+groups:
+  # --------------------------------------------------------------- servicios
+  - orgId: 1
+    name: the-store-servicios
+    folder: The Store
+    interval: 30s
+    rules:
+      - uid: ts-servicio-caido
+        title: Servicio caído
+        condition: C
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Prometheus no puede scrapear {{ .Labels.service }}.'
+          description: 'El servicio no responde en su endpoint de métricas desde hace más de 1 minuto.'
+          __dashboardUid__: the-store-plataforma
+          __panelId__: "2"
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              refId: A
+              instant: true
+              range: false
+              expr: up{job=~"the-store-.*"}
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: lt, params: [1] }
+
+      - uid: ts-errores-5xx
+        title: Tasa de errores 5xx elevada
+        condition: C
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: '{{ .Labels.service }} está respondiendo {{ with .Values.B }}{{ humanizePercentage .Value }}{{ end }} de sus requests con error 5xx.'
+          description: 'Umbral: 5% durante 1 minuto. Revisar trazas con error y logs del servicio en el tablero.'
+          __dashboardUid__: the-store-plataforma
+          __panelId__: "6"
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              refId: A
+              instant: true
+              range: false
+              expr: |
+                (
+                  sum by (service) (rate(http_server_requests_seconds_count{job="the-store-spring", uri!~"/actuator.*|/chaos.*", status=~"5.."}[1m]))
+                  / sum by (service) (rate(http_server_requests_seconds_count{job="the-store-spring", uri!~"/actuator.*|/chaos.*"}[1m]))
+                )
+                or
+                (
+                  sum by (service) (rate(gin_requests_total{service="catalog", url!~"/health|/chaos.*", code=~"5.."}[1m]))
+                  / sum by (service) (rate(gin_requests_total{service="catalog", url!~"/health|/chaos.*"}[1m]))
+                )
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0.05] }
+
+      - uid: ts-latencia-alta
+        title: Latencia elevada
+        condition: C
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: 'La latencia promedio de {{ .Labels.service }} es {{ with .Values.B }}{{ humanizeDuration .Value }}{{ end }}.'
+          description: 'Umbral: 1s durante 1 minuto. Buscar en Tempo el span que concentra la demora.'
+          __dashboardUid__: the-store-plataforma
+          __panelId__: "7"
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              refId: A
+              instant: true
+              range: false
+              expr: |
+                (
+                  sum by (service) (rate(http_server_requests_seconds_sum{job="the-store-spring", uri!~"/actuator.*|/chaos.*"}[1m]))
+                  / sum by (service) (rate(http_server_requests_seconds_count{job="the-store-spring", uri!~"/actuator.*|/chaos.*"}[1m]))
+                )
+                or
+                (
+                  sum by (service) (rate(gin_request_duration_seconds_sum{service="catalog", url!~"/health|/chaos.*"}[1m]))
+                  / sum by (service) (rate(gin_request_duration_seconds_count{service="catalog", url!~"/health|/chaos.*"}[1m]))
+                )
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [1] }
+
+  # --------------------------------------------------------- infraestructura
+  - orgId: 1
+    name: the-store-infraestructura
+    folder: The Store
+    interval: 30s
+    rules:
+      - uid: ts-cpu-saturada
+        title: CPU saturada (throttling)
+        condition: C
+        for: 1m
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: warning
+        annotations:
+          summary: 'El pod {{ .Labels.pod }} está limitado por CPU el {{ with .Values.B }}{{ humanizePercentage .Value }}{{ end }} del tiempo.'
+          description: 'El contenedor necesita más CPU de la que permite su límite. Revisar límites del deployment.'
+          __dashboardUid__: the-store-infraestructura
+          __panelId__: "7"
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              refId: A
+              instant: true
+              range: false
+              expr: |
+                label_replace(
+                  sum by (pod) (rate(container_cpu_cfs_throttled_periods_total{namespace="the-store", container!=""}[1m]))
+                  / sum by (pod) (rate(container_cpu_cfs_periods_total{namespace="the-store", container!=""}[1m])),
+                  "service", "$1", "pod", "([a-z]+)-.*"
+                )
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0.5] }
+
+      - uid: ts-pod-reiniciando
+        title: Contenedor reiniciándose
+        condition: C
+        for: 0s
+        noDataState: OK
+        execErrState: Error
+        labels:
+          severity: critical
+        annotations:
+          summary: 'Kubernetes reinició {{ .Labels.service }} {{ with .Values.B }}{{ .Value }}{{ end }} vez/veces en los últimos 5 minutos.'
+          description: 'Probable falla de la liveness probe (contenedor sin responder). Ver CPU y reinicios en el tablero de infraestructura.'
+          __dashboardUid__: the-store-infraestructura
+          __panelId__: "10"
+        data:
+          - refId: A
+            datasourceUid: prometheus
+            relativeTimeRange: { from: 300, to: 0 }
+            model:
+              refId: A
+              instant: true
+              range: false
+              expr: |
+                label_replace(
+                  sum by (container) (round(increase(kube_pod_container_status_restarts_total{namespace="the-store"}[5m]))),
+                  "service", "$1", "container", "(.*)"
+                )
+          - refId: B
+            datasourceUid: __expr__
+            model:
+              refId: B
+              type: reduce
+              reducer: last
+              expression: A
+          - refId: C
+            datasourceUid: __expr__
+            model:
+              refId: C
+              type: threshold
+              expression: B
+              conditions:
+                - evaluator: { type: gt, params: [0] }

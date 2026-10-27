@@ -1,3 +1,6 @@
+# Loki (chart grafana/loki) en modo SingleBinary: recibe los logs que envía Promtail.
+# Sin persistencia ni componentes auxiliares para entrar en un clúster Kind local.
+
 deploymentMode: SingleBinary
 
 loki:

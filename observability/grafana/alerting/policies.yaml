@@ -1,0 +1,10 @@
+# Política de notificación: toda alerta de Grafana va al canal de Discord.
+# Se agrupa por alerta + servicio para recibir un mensaje por incidente.
+apiVersion: 1
+policies:
+  - orgId: 1
+    receiver: discord-equipo
+    group_by: [alertname, service]
+    group_wait: 10s        # espera inicial antes del primer mensaje
+    group_interval: 1m     # cada cuánto se avisan cambios del mismo grupo
+    repeat_interval: 4h    # recordatorio si sigue activa
