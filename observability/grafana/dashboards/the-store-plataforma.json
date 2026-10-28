@@ -492,7 +492,7 @@
         "type": "loki",
         "uid": "loki"
       },
-      "description": "Cantidad de líneas de log con error/exception/fail por minuto, por servicio.",
+      "description": "Líneas de error por minuto y por servicio: ERROR, Exception o requests 5xx (catalog). No cuenta las líneas de stack trace.",
       "targets": [
         {
           "refId": "A",
@@ -500,7 +500,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "sum by (app) (count_over_time({namespace=\"the-store\"} |~ \"(?i)(error|exception|fail)\" [1m]))",
+          "expr": "sum by (app) (count_over_time({namespace=\"the-store\"} |~ \"ERROR|Exception|\\\\| 5[0-9][0-9] \\\\|\" !~ \"^\\\\s\" [1m]))",
           "legendFormat": "{{app}}",
           "queryType": "range"
         }
@@ -549,7 +549,7 @@
             "type": "loki",
             "uid": "loki"
           },
-          "expr": "{namespace=\"the-store\"} |~ \"(?i)(error|exception|fail)\"",
+          "expr": "{namespace=\"the-store\"} |~ \"ERROR|Exception|\\\\| 5[0-9][0-9] \\\\|\" !~ \"^\\\\s\"",
           "queryType": "range"
         }
       ],

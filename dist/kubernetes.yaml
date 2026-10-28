@@ -243,6 +243,9 @@ spec:
               value: none
             - name: OTEL_LOGS_EXPORTER
               value: none
+            # Cada línea de log lleva el trace_id/span_id del request: permite ir de la traza a sus logs exactos
+            - name: LOGGING_PATTERN_LEVEL
+              value: "%5p [trace_id=%X{trace_id} span_id=%X{span_id}]"
           envFrom:
             - configMapRef:
                 name: carts
@@ -403,6 +406,9 @@ spec:
               value: none
             - name: OTEL_LOGS_EXPORTER
               value: none
+            # Cada línea de log lleva el trace_id/span_id del request: permite ir de la traza a sus logs exactos
+            - name: LOGGING_PATTERN_LEVEL
+              value: "%5p [trace_id=%X{trace_id} span_id=%X{span_id}]"
           envFrom:
             - configMapRef:
                 name: orders
@@ -700,6 +706,9 @@ spec:
               value: none
             - name: OTEL_LOGS_EXPORTER
               value: none
+            # Cada línea de log lleva el trace_id/span_id del request: permite ir de la traza a sus logs exactos
+            - name: LOGGING_PATTERN_LEVEL
+              value: "%5p [trace_id=%X{trace_id} span_id=%X{span_id}]"
           envFrom:
             - configMapRef:
                 name: ui

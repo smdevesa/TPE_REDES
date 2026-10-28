@@ -50,11 +50,20 @@ datasources:
           # en la ventana de tiempo del span (3.3.3)
           tracesToLogsV2:
             datasourceUid: loki
-            spanStartTimeShift: '-10s'   # margen por desfase de relojes
-            spanEndTimeShift: '10s'
+            spanStartTimeShift: '-5s'    # margen por desfase de relojes
+            spanEndTimeShift: '5s'
             tags:
               - key: service.name        # atributo del span en Tempo
                 value: app               # etiqueta {app="..."} en Loki
+            # Consulta propia para traer los logs EXACTOS de la traza:
+            #  - ui, carts y orders (Java) escriben trace_id=<id> en cada línea
+            #    (LOGGING_PATTERN_LEVEL en dist/kubernetes.yaml) -> se filtra por ese id.
+            #  - catalog (Go/gin) y checkout (Node) no pueden hacerlo sin tocar código:
+            #    se muestran sus líneas de acceso HTTP ([GIN] / [HTTP]) en la ventana del span.
+            # ${__tags} -> {app="<servicio>"} y ${__trace.traceId} los completa Grafana;
+            # el $$ evita que el provisioning los tome como variables de entorno.
+            customQuery: true
+            query: '{namespace="the-store", $${__tags}} |~ "trace_id=$${__trace.traceId}|\\[GIN\\]|\\[HTTP\\]" !~ "/metrics|/health"'
             filterByTraceID: false
             filterBySpanID: false
 
