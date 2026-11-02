@@ -209,7 +209,7 @@ ERROR [trace_id=<el de esta traza> span_id=…] … 500 Server Error for HTTP GE
 ```
 ✅ [RESUELTO] Tasa de errores 5xx elevada · catalog
 🟢 1 alerta(s) resuelta(s)
-… 🕒 Activa de hh:mm:ss a hh:mm:ss UTC
+… 🕒 Resuelta a las hh:mm:ss UTC
 ```
 
 ---

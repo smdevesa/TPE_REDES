@@ -12,7 +12,7 @@ templates:
       **Servicio:** `{{ .Labels.service }}`{{ if .Labels.pod }} (pod `{{ .Labels.pod }}`){{ end }}  ·  **Severidad:** {{ .Labels.severity }}
       {{ .Annotations.summary }}
       {{ if eq .Status "firing" }}_{{ .Annotations.description }}_
-      🕒 Desde {{ .StartsAt.Format "15:04:05" }} UTC{{ else }}🕒 Activa de {{ .StartsAt.Format "15:04:05" }} a {{ .EndsAt.Format "15:04:05" }} UTC{{ end }}
+      🕒 Desde {{ .StartsAt.Format "15:04:05" }} UTC{{ else }}🕒 Resuelta a las {{ .EndsAt.Format "15:04:05" }} UTC{{ end }}
       {{ if .PanelURL }}📊 [Ver panel]({{ .PanelURL }}){{ else if .DashboardURL }}📊 [Ver tablero]({{ .DashboardURL }}){{ end }}
       {{- end }}
 

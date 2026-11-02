@@ -9,6 +9,22 @@ Our platform provides a complete shopping experience with:
 - **Scalable microservices** built with multiple languages and frameworks
 - **Real-time inventory management** and order processing
 
+## 🔭 TPE Redes de Información · Grupo 5: Observabilidad
+
+Stack de observabilidad (Prometheus, Loki + Promtail, Tempo y Grafana, con alertas a Discord)
+sobre The Store, sin modificar el código de los microservicios.
+
+```bash
+./local.sh create-cluster --skip-tests   # clúster Kind + The Store
+cp .env.example .env                     # completar DISCORD_WEBHOOK_URL
+./observability.sh install               # stack + tableros + alertas
+./observability.sh ui                    # Grafana http://localhost:3000 (admin/admin)
+```
+
+- How-to para replicar la implementación: [howto.md](howto.md)
+- Guion de demo de los casos de uso: [docs/demo.md](docs/demo.md)
+- `./observability.sh help` lista todos los comandos (start/stop, status, traffic, chaos…)
+
 ## 🏗️ Architecture
 
 The Store is built with a microservices architecture that uses different technologies:
