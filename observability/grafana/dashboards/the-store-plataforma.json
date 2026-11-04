@@ -401,12 +401,12 @@
     },
     {
       "type": "table",
-      "title": "Llamadas salientes (a otros servicios y a bases de datos)",
+      "title": "Llamadas salientes (quién llama a quién)",
       "datasource": {
         "type": "tempo",
         "uid": "tempo"
       },
-      "description": "Spans de tipo client: cada vez que un servicio llama a otro (server.address / http.url) o a su base de datos (db.system). ui es el que más aparece porque es el frontend: cada página llama a catalog, carts o checkout. checkout llama a orders al pagar; catalog y orders consultan su base. Click en el Trace ID para ver la traza completa.",
+      "description": "Cada fila es una llamada que hace un servicio: Origen = quién llama, Destino = a qué servicio llama (o Base de datos, si consulta su base), con el método, la URL y el código HTTP que recibió. Click en \"Ver traza\" para abrir la traza completa en esa llamada.",
       "targets": [
         {
           "refId": "A",
@@ -418,12 +418,59 @@
           "limit": 100,
           "tableType": "spans",
           "spss": 10,
-          "query": "{ kind = client && resource.service.name =~ \"ui|catalog|carts|orders|checkout\" } | select(span.server.address, span.http.url, span.db.system, span.http.response.status_code) with (most_recent=true)"
+          "query": "{ kind = client && resource.service.name =~ \"ui|catalog|carts|orders|checkout\" } | select(name, span.server.address, span.db.system, span.url.full, span.http.response.status_code) with (most_recent=true)"
         }
       ],
       "fieldConfig": {
         "defaults": {},
-        "overrides": []
+        "overrides": [
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "Código HTTP"
+            },
+            "properties": [
+              {
+                "id": "custom.cellOptions",
+                "value": {
+                  "type": "color-text"
+                }
+              },
+              {
+                "id": "thresholds",
+                "value": {
+                  "mode": "absolute",
+                  "steps": [
+                    {
+                      "color": "green",
+                      "value": null
+                    },
+                    {
+                      "color": "orange",
+                      "value": 400
+                    },
+                    {
+                      "color": "red",
+                      "value": 500
+                    }
+                  ]
+                }
+              }
+            ]
+          },
+          {
+            "matcher": {
+              "id": "byName",
+              "options": "URL"
+            },
+            "properties": [
+              {
+                "id": "custom.minWidth",
+                "value": 260
+              }
+            ]
+          }
+        ]
       },
       "options": {
         "showHeader": true
@@ -434,7 +481,41 @@
         "w": 12,
         "x": 0,
         "y": 16
-      }
+      },
+      "transformations": [
+        {
+          "id": "organize",
+          "options": {
+            "excludeByName": {
+              "traceService": true,
+              "traceName": true,
+              "kind": true
+            },
+            "renameByName": {
+              "time": "Hora",
+              "service.name": "Origen",
+              "name": "Operación",
+              "server.address": "Destino",
+              "db.system": "Base de datos",
+              "url.full": "URL",
+              "http.response.status_code": "Código HTTP",
+              "duration": "Duración",
+              "spanID": "Ver traza"
+            },
+            "indexByName": {
+              "time": 0,
+              "service.name": 1,
+              "name": 2,
+              "server.address": 3,
+              "db.system": 4,
+              "url.full": 5,
+              "http.response.status_code": 6,
+              "duration": 7,
+              "spanID": 8
+            }
+          }
+        }
+      ]
     },
     {
       "type": "table",

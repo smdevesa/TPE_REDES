@@ -60,10 +60,13 @@ datasources:
             #    (LOGGING_PATTERN_LEVEL en dist/kubernetes.yaml) -> se filtra por ese id.
             #  - catalog (Go/gin) y checkout (Node) no pueden hacerlo sin tocar código:
             #    se muestran sus líneas de acceso HTTP ([GIN] / [HTTP]) en la ventana del span.
+            #  - Los ERROR sin trace_id ("ERROR [trace_id= ") también se muestran: Tomcat
+            #    loguea las excepciones no manejadas (ej. el NPE de carts) fuera del span,
+            #    así que salen sin id. Se acotan igual a la ventana de tiempo del span.
             # ${__tags} -> {app="<servicio>"} y ${__trace.traceId} los completa Grafana;
             # el $$ evita que el provisioning los tome como variables de entorno.
             customQuery: true
-            query: '{namespace="the-store", $${__tags}} |~ "trace_id=$${__trace.traceId}|\\[GIN\\]|\\[HTTP\\]" !~ "/metrics|/health"'
+            query: '{namespace="the-store", $${__tags}} |~ "trace_id=$${__trace.traceId}|\\[GIN\\]|\\[HTTP\\]|ERROR \\[trace_id= " !~ "/metrics|/health"'
             filterByTraceID: false
             filterBySpanID: false
 

@@ -544,6 +544,11 @@ spec:
               value: checkout
             - name: OTEL_EXPORTER_OTLP_ENDPOINT
               value: http://tempo.observability.svc:4318
+            # Nombres de atributos HTTP estables (url.full, server.address,
+            # http.response.status_code), los mismos que usan los servicios Java.
+            # Sin esto Node usa los viejos (http.url, http.status_code).
+            - name: OTEL_SEMCONV_STABILITY_OPT_IN
+              value: http
             # Solo trazas por OTLP: métricas las scrapea Prometheus y los logs los junta Promtail
             - name: OTEL_METRICS_EXPORTER
               value: none

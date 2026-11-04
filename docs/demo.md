@@ -88,13 +88,13 @@ kubectl get pods -n observability
 💬 "El tablero se lee de arriba hacia abajo: ¿está todo vivo?, ¿qué está mal?, ¿dónde?, ¿por qué? Las métricas dicen qué, las trazas dónde y los logs por qué, en una sola pantalla."
 
 **Paso 1.2 · El mapa de dependencias.**
-▶ En *Llamadas salientes*, expandir una fila con la flecha de la izquierda.
-👀 Destinos (`server.address` / `http.url`), base de datos (`db.system`) y código HTTP. Se ven: ui → catalog, carts y checkout; checkout → orders; catalog → sqlite; orders → h2.
+▶ Mirar el panel *Llamadas salientes*.
+👀 Cada fila es una llamada: **Origen** (quién llama), **Operación** (método o consulta), **Destino** o **Base de datos**, **URL** y **Código HTTP** (verde 2xx, naranja 4xx, rojo 5xx). Se ven: ui → catalog, carts y checkout; checkout → orders; catalog → sqlite; orders → h2.
 
 💬 "Esto es el mapa real de quién llama a quién, sacado de las trazas, sin leer el código."
 
 **Paso 1.3 · Una compra de punta a punta.**
-▶ En *Llamadas salientes*, buscar una fila de **checkout** y hacer click en su **Trace ID**.
+▶ En *Llamadas salientes*, buscar una fila con Origen **checkout** y hacer click en **Ver traza**.
 👀 La traza **`POST /checkout/payment`** (~15 ms) con 5 servicios:
 - **ui** (Java) recibe el pago y llama a carts, catalog y checkout;
 - **catalog** (Go) consulta su base (`gorm.Query`);
