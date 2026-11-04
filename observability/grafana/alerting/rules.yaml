@@ -13,19 +13,19 @@ groups:
   - orgId: 1
     name: the-store-servicios
     folder: The Store
-    interval: 30s
+    interval: 10s
     rules:
       - uid: ts-servicio-caido
         title: Servicio caído
         condition: C
-        for: 1m
+        for: 15s
         noDataState: OK
         execErrState: Error
         labels:
           severity: critical
         annotations:
           summary: 'Prometheus no puede scrapear {{ .Labels.service }}.'
-          description: 'El servicio no responde en su endpoint de métricas desde hace más de 1 minuto.'
+          description: 'El servicio no responde en su endpoint de métricas desde hace más de 15 segundos.'
           __dashboardUid__: the-store-plataforma
           __panelId__: "2"
         data:
@@ -56,14 +56,14 @@ groups:
       - uid: ts-errores-5xx
         title: Tasa de errores 5xx elevada
         condition: C
-        for: 1m
+        for: 15s
         noDataState: OK
         execErrState: Error
         labels:
           severity: critical
         annotations:
           summary: '{{ .Labels.service }} está respondiendo {{ with .Values.B }}{{ humanizePercentage .Value }}{{ end }} de sus requests con error 5xx.'
-          description: 'Umbral: 5% durante 1 minuto. Revisar trazas con error y logs del servicio en el tablero.'
+          description: 'Umbral: 2% durante 15 segundos. Revisar trazas con error y logs del servicio en el tablero.'
           __dashboardUid__: the-store-plataforma
           __panelId__: "6"
         data:
@@ -98,19 +98,19 @@ groups:
               type: threshold
               expression: B
               conditions:
-                - evaluator: { type: gt, params: [0.05] }
+                - evaluator: { type: gt, params: [0.02] }
 
       - uid: ts-latencia-alta
         title: Latencia elevada
         condition: C
-        for: 1m
+        for: 15s
         noDataState: OK
         execErrState: Error
         labels:
           severity: warning
         annotations:
           summary: 'La latencia promedio de {{ .Labels.service }} es {{ with .Values.B }}{{ humanizeDuration .Value }}{{ end }}.'
-          description: 'Umbral: 1s durante 1 minuto. Buscar en Tempo el span que concentra la demora.'
+          description: 'Umbral: 0.5s durante 15 segundos. Buscar en Tempo el span que concentra la demora.'
           __dashboardUid__: the-store-plataforma
           __panelId__: "7"
         data:
@@ -145,18 +145,18 @@ groups:
               type: threshold
               expression: B
               conditions:
-                - evaluator: { type: gt, params: [1] }
+                - evaluator: { type: gt, params: [0.5] }
 
   # --------------------------------------------------------- infraestructura
   - orgId: 1
     name: the-store-infraestructura
     folder: The Store
-    interval: 30s
+    interval: 10s
     rules:
       - uid: ts-cpu-saturada
         title: CPU saturada (throttling)
         condition: C
-        for: 1m
+        for: 15s
         noDataState: OK
         execErrState: Error
         labels:
@@ -194,7 +194,7 @@ groups:
               type: threshold
               expression: B
               conditions:
-                - evaluator: { type: gt, params: [0.5] }
+                - evaluator: { type: gt, params: [0.25] }
 
       - uid: ts-pod-reiniciando
         title: Contenedor reiniciándose
