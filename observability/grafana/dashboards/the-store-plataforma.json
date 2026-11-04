@@ -225,7 +225,7 @@
     {
       "type": "timeseries",
       "title": "Errors · % de respuestas 5xx",
-      "description": "Proporción de respuestas 5xx. La alerta dispara por encima del 5%.",
+      "description": "Proporción de respuestas 5xx. La alerta dispara por encima del 2%.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -274,7 +274,7 @@
               },
               {
                 "color": "red",
-                "value": 0.05
+                "value": 0.02
               }
             ]
           },
@@ -308,7 +308,7 @@
     {
       "type": "timeseries",
       "title": "Duration · latencia promedio",
-      "description": "Tiempo medio de respuesta (suma/cantidad). La alerta dispara por encima de 1s.",
+      "description": "Tiempo medio de respuesta (suma/cantidad). La alerta dispara por encima de 0.5s.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -357,7 +357,7 @@
               },
               {
                 "color": "orange",
-                "value": 1
+                "value": 0.5
               }
             ]
           }
