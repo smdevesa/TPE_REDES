@@ -264,7 +264,7 @@ ERROR [trace_id=<el de esta traza> span_id=…] … 500 Server Error for HTTP GE
 👀
 - *Réplicas disponibles / deseadas* al 100 % y *Reinicios (última hora)* en 0.
 - *Pods listos* todo en verde.
-- *Uso de CPU por pod*: el uso, muy por debajo de la línea punteada (la CPU reservada, el request). No hay línea roja porque no hay límites.
+- *Uso de CPU por pod*: el uso de cada pod en milicores (1000m = 1 core). No hay línea roja porque no hay límites.
 - *Saturación · % de CPU throttling*: sin datos.
 - *Nodo del clúster*: CPU y memoria del nodo.
 
@@ -281,7 +281,7 @@ ERROR [trace_id=<el de esta traza> span_id=…] … 500 Server Error for HTTP GE
 
 **Paso 5.3 · Saturación (≈ 1 min).**
 ▶ Aislar **carts** en la leyenda de *Uso de CPU por pod*.
-👀 Aparece la **línea roja** del límite en 0,05 y el uso de carts queda pegado a ella. En *Saturación*, carts sube a **~90 %**.
+👀 Aparece la **línea roja** del límite en 50m y el uso de carts queda pegado a ella. En *Saturación*, carts sube a **~90 %**.
 
 💬 "Throttling es el tiempo en que el contenedor quiso más CPU de la que tiene permitida. Nueve de cada diez veces lo frenan."
 

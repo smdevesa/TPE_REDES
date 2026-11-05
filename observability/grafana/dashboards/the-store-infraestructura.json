@@ -119,7 +119,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (container) (increase(kube_pod_container_status_restarts_total{namespace=\"the-store\"}[1h]))",
+          "expr": "sum by (container) (round(increase(kube_pod_container_status_restarts_total{namespace=\"the-store\"}[1h])))",
           "legendFormat": "{{container}}",
           "range": false,
           "instant": true
@@ -145,7 +145,8 @@
                 "value": 3
               }
             ]
-          }
+          },
+          "decimals": 0
         },
         "overrides": []
       },
@@ -256,8 +257,8 @@
     },
     {
       "type": "timeseries",
-      "title": "Uso de CPU por pod (cores) vs. request y límite",
-      "description": "Uso real (cAdvisor) contra el request (CPU reservada, punteada) y el límite (tope, rojo) de kube-state-metrics. Los servicios no tienen límite de CPU: la línea roja aparece solo al aplicar 'chaos cpu'.",
+      "title": "Uso de CPU por pod (milicores) vs. límite",
+      "description": "CPU usada por cada pod, en milicores (1000m = 1 core), contra su límite (línea roja). Los servicios no tienen límite de CPU: la línea roja aparece solo al aplicar 'chaos cpu' (ej. 50m), y ahí se ve el uso pegado contra el tope.",
       "datasource": {
         "type": "prometheus",
         "uid": "prometheus"
@@ -269,7 +270,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"the-store\", container!=\"\", container!=\"POD\"}[1m]))",
+          "expr": "1000 * sum by (pod) (rate(container_cpu_usage_seconds_total{namespace=\"the-store\", container!=\"\", container!=\"POD\"}[1m]))",
           "legendFormat": "{{pod}}",
           "range": true,
           "instant": false
@@ -280,18 +281,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (pod) (kube_pod_container_resource_requests{namespace=\"the-store\", resource=\"cpu\"})",
-          "legendFormat": "request {{pod}}",
-          "range": true,
-          "instant": false
-        },
-        {
-          "refId": "C",
-          "datasource": {
-            "type": "prometheus",
-            "uid": "prometheus"
-          },
-          "expr": "sum by (pod) (kube_pod_container_resource_limits{namespace=\"the-store\", resource=\"cpu\"})",
+          "expr": "1000 * sum by (pod) (kube_pod_container_resource_limits{namespace=\"the-store\", resource=\"cpu\"})",
           "legendFormat": "límite {{pod}}",
           "range": true,
           "instant": false
@@ -299,45 +289,19 @@
       ],
       "fieldConfig": {
         "defaults": {
-          "unit": "short",
+          "unit": "suffix:m",
           "custom": {
             "lineWidth": 2,
             "fillOpacity": 10,
             "showPoints": "never"
           },
-          "decimals": 2
+          "min": 0
         },
         "overrides": [
           {
             "matcher": {
               "id": "byFrameRefID",
               "options": "B"
-            },
-            "properties": [
-              {
-                "id": "custom.lineStyle",
-                "value": {
-                  "fill": "dash",
-                  "dash": [
-                    6,
-                    6
-                  ]
-                }
-              },
-              {
-                "id": "custom.fillOpacity",
-                "value": 0
-              },
-              {
-                "id": "custom.lineWidth",
-                "value": 1
-              }
-            ]
-          },
-          {
-            "matcher": {
-              "id": "byFrameRefID",
-              "options": "C"
             },
             "properties": [
               {
@@ -570,7 +534,7 @@
             "type": "prometheus",
             "uid": "prometheus"
           },
-          "expr": "sum by (container) (increase(kube_pod_container_status_restarts_total{namespace=\"the-store\"}[2m]))",
+          "expr": "sum by (container) (round(increase(kube_pod_container_status_restarts_total{namespace=\"the-store\"}[2m])))",
           "legendFormat": "{{container}}",
           "range": true,
           "instant": false
