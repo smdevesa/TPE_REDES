@@ -21,8 +21,8 @@ cp .env.example .env                     # completar DISCORD_WEBHOOK_URL
 ./observability.sh ui                    # Grafana http://localhost:3000 (admin/admin)
 ```
 
-- How-to para replicar la implementación: [howto.md](howto.md)
-- Guion de demo de los casos de uso: [docs/demo.md](docs/demo.md)
+- How-to para replicar la implementación y probar los casos de uso: [howto.md](howto.md)
+- Documento de la reentrega: [docs/Reentrega - G520262Q.pdf](<docs/Reentrega - G520262Q.pdf>)
 - `./observability.sh help` lista todos los comandos (start/stop, status, traffic, chaos…)
 
 ## 🏗️ Architecture

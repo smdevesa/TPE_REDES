@@ -62,8 +62,8 @@ Tarda unos minutos y se puede repetir sin duplicar nada. Hace, en orden:
 | 7. Grafana `10.5.15` | `helm upgrade --install grafana grafana/grafana` + `rollout restart` | `observability/values/grafana.yaml` |
 | 8. Instrumentar The Store | `kubectl apply -f dist/kubernetes.yaml -n the-store` | `dist/kubernetes.yaml` |
 
-Los comandos completos, para correrlos a mano, están en
-[docs/observability-setup.md](docs/observability-setup.md#paso-a-paso-manual-lo-que-hace-install-por-dentro).
+Los comandos completos, para correrlos a mano, están en la función `cmd_install` de
+[observability.sh](observability.sh).
 
 ## 5. Qué configura cada pieza
 
@@ -94,6 +94,7 @@ Cambios sobre el manifiesto original, en cada deployment:
 | `OTEL_SERVICE_NAME=<svc>` | todos | Nombre del servicio en las trazas. En catalog, además, es lo que enciende el tracer |
 | `OTEL_EXPORTER_OTLP_ENDPOINT=http://tempo.observability.svc:4318` | todos | Destino de las trazas |
 | `OTEL_METRICS_EXPORTER=none`, `OTEL_LOGS_EXPORTER=none` | todos | Por OTLP solo viajan trazas: las métricas y los logs tienen su propio camino |
+| `OTEL_SEMCONV_STABILITY_OPT_IN=http` | checkout | Node usa por defecto los nombres viejos de atributos HTTP (`http.url`, `http.status_code`); así usa los mismos que los servicios Java (`url.full`, `http.response.status_code`) |
 | `LOGGING_PATTERN_LEVEL=%5p [trace_id=%X{trace_id} span_id=%X{span_id}]` | carts, orders, ui | Cada línea de log lleva el `trace_id`, lo que permite saltar de una traza a sus logs |
 | `livenessProbe` (`/actuator/health/liveness` o `/health`) | todos | Kubernetes reinicia el contenedor si deja de responder (caso 3.3.5) |
 | `RETAIL_CHECKOUT_ENDPOINTS_ORDERS=http://orders` en el ConfigMap de checkout | checkout | Sin esto, checkout usa un orders simulado y orders no recibe tráfico |
@@ -101,22 +102,26 @@ Cambios sobre el manifiesto original, en cada deployment:
 ### Grafana (`grafana.yaml` + `observability/grafana/`)
 - **Datasources:** Prometheus, Loki y Tempo, fijos en el archivo y no editables desde la interfaz.
 - **De traza a logs** (`tracesToLogsV2` en el datasource Tempo): el `service.name` del span se mapea
-  a la etiqueta `app` de Loki. El botón *Logs for this span* busca las líneas con ese `trace_id`,
-  con un margen de ±5 s.
+  a la etiqueta `app` de Loki. El botón *Logs for this span* busca, en la ventana del span ±5 s:
+  - las líneas con ese `trace_id` (carts, orders y ui lo escriben en cada línea);
+  - las líneas de acceso HTTP de catalog y checkout (`[GIN]` / `[HTTP]`), que no pueden llevar el
+    `trace_id` sin tocar código;
+  - los `ERROR` sin `trace_id`: Tomcat loguea las excepciones no manejadas cuando el span ya se
+    cerró (por ejemplo, el `NullPointerException` de carts).
 - **Tableros** (`dashboards/*.json`, cargados desde el ConfigMap `grafana-dashboards`):
   - *The Store - Plataforma*: estado de los servicios, tasa de requests, errores y latencia,
     llamadas entre servicios, trazas con error o lentas y logs con error.
   - *The Store - Infraestructura*: réplicas, readiness, reinicios, CPU contra límite,
     throttling, memoria y nodo.
-- **Alertas** (`alerting/*.yaml`, cargadas desde el ConfigMap `grafana-alerting`). Se evalúan cada 30 s:
+- **Alertas** (`alerting/*.yaml`, cargadas desde el ConfigMap `grafana-alerting`). Se evalúan cada 10 s:
 
   | Alerta | Condición | Sostenida | Severidad |
   |---|---|---|---|
-  | Servicio caído | `up < 1` | 1 min | critical |
-  | Tasa de errores 5xx elevada | > 5 % de respuestas 5xx | 1 min | critical |
-  | Latencia elevada | promedio > 1 s | 1 min | warning |
-  | CPU saturada (throttling) | > 50 % de períodos limitados | 1 min | warning |
-  | Contenedor reiniciándose | > 0 reinicios en 5 min | inmediata | critical |
+  | Servicio caído | `up < 1` | 15 s | critical |
+  | Tasa de errores 5xx elevada | > 2 % de respuestas 5xx | 15 s | critical |
+  | Latencia elevada | promedio > 0,5 s | 15 s | warning |
+  | CPU saturada (throttling) | > 25 % de períodos limitados | 15 s | warning |
+  | Contenedor reiniciándose | > 0 reinicios en 5 min (se resuelve tras 5 min sin reinicios) | inmediata | critical |
 
   Todas van al contact point `discord-equipo`. El webhook entra como variable de entorno desde el
   Secret `grafana-discord`.
@@ -148,12 +153,10 @@ Con el tráfico corriendo:
 |---|---|---|
 | 3.3.1 Errores | `./observability.sh chaos errors catalog 500` | % 5xx de catalog en ~100 %, alerta *Tasa de errores 5xx* y aviso en Discord |
 | 3.3.2 Latencia | `./observability.sh chaos latency catalog 2000` | Latencia en varios segundos y alerta *Latencia elevada* |
-| 3.3.3 Causa raíz | (con 3.3.1 activo) | Traza con error → span de catalog → *Logs for this span* |
+| 3.3.3 Causa raíz | (con 3.3.1 activo) | Traza de ui con error → span `GET` a catalog con 500 → *Logs for this span*: el `ApiException` de ui con el mismo `trace_id`. No hay span de catalog: el caos corta el request antes de la instrumentación |
 | 3.3.4 Visión unificada | — | Tablero *Plataforma* |
 | 3.3.5 Infraestructura | `./observability.sh chaos cpu carts 50` | Throttling, pod sin readiness, reinicios por liveness y sus alertas |
 | Volver a la normalidad | `./observability.sh chaos reset` | Las alertas se resuelven y llega el aviso a Discord |
-
-El guion detallado de la demo está en [docs/demo.md](docs/demo.md).
 
 ## 8. Uso diario
 
